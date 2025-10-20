@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Momentum + Buidlpad — Day 11 Quiz</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .fade { transition: all .35s ease-in-out; opacity: 0; transform: translateY(6px); }
+  .fade.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body class="bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center min-h-screen p-6">
+
+<div id="app" class="w-full max-w-3xl">
+
+  <!-- Start Page -->
+  <div id="startCard" class="bg-white rounded-2xl shadow-lg p-8 text-center fade show">
+    <h1 class="text-3xl font-extrabold text-purple-700 mb-2">Momentum + Buidlpad</h1>
+    <p class="text-gray-600 mb-6">Day 11 — 15 Quick Questions</p>
+    <button id="startBtn" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">Start Quiz</button>
+  </div>
+
+  <!-- Quiz Page -->
+  <div id="quizCard" class="hidden bg-white rounded-2xl shadow-lg p-6 fade">
+    <div class="flex justify-between mb-4 items-center">
+      <div>
+        <div id="progress" class="text-sm text-gray-500">Question <span id="currentNum">1</span> / 15</div>
+        <h2 id="qText" class="text-lg font-semibold text-gray-800 mt-1">—</h2>
+      </div>
+      <div class="text-right">
+        <div id="timer" class="text-sm font-bold text-red-600">12s</div>
+        <div id="scoreText" class="text-sm text-gray-500">Score: 0</div>
+      </div>
+    </div>
+    <div id="options" class="grid gap-3"></div>
+    <div class="mt-5 flex justify-end gap-2">
+      <button id="skipBtn" class="px-3 py-2 bg-yellow-100 rounded-lg text-yellow-800 hover:bg-yellow-200">Skip</button>
+    </div>
+  </div>
+
+  <!-- Result Page -->
+  <div id="resultCard" class="hidden bg-white rounded-2xl shadow-lg p-6 fade">
+    <h2 class="text-2xl font-bold text-purple-700 mb-2">Quiz Complete!</h2>
+    <p class="text-gray-600 mb-4">You scored <span id="finalScore" class="font-semibold text-gray-800">0</span> / 15</p>
+    <div id="answersList" class="space-y-3 max-h-72 overflow-auto mb-4 p-2"></div>
+    <div class="flex gap-3 justify-center">
+      <button id="retryBtn" class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Restart</button>
+      <button id="shareBtn" class="px-5 py-2 border rounded-lg text-purple-600 hover:bg-purple-50">Copy Results</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const quiz = [
+  {q:"Momentum Finance का native token क्या है?", options:["$BUIDL","$MMT","$MOVE","$MFI"], answer:1},
+  {q:"Momentum Finance की sale किस launchpad पर हो रही है?", options:["PinkSale","Buidlpad","DAO Maker","Seedify"], answer:1},
+  {q:"Momentum Finance का main goal क्या है?", options:["NFTs mint करना","BTCFi ecosystem को grow करना","Meme token launch करना","Stablecoin बनाना"], answer:1},
+  {q:"Buidlpad platform किस तरह के projects को support करता है?", options:["DeFi & Web3 Startups","केवल GameFi","केवल NFTs","केवल AI tools"], answer:0},
+  {q:"Content Creator allocation कितने लोगों को मिलेगा?", options:["5000","7000","9000","12000"], answer:2},
+  {q:"$MMT sale कितने दिन तक चलेगी?", options:["3 दिन","5 दिन","7 दिन","10 दिन"], answer:2},
+  {q:"Momentum Finance की टीम मुख्यतः किस पर काम कर रही है?", options:["Liquidity incentives","BTCFi infrastructure","Web2 Apps","NFTs"], answer:1},
+  {q:"Buidlpad sale में हिस्सा लेने के लिए क्या जरूरी है?", options:["KYC verification","Telegram Join","सिर्फ Email Submit","कोई Requirement नहीं"], answer:0},
+  {q:"$MMT token supply का बड़ा हिस्सा किसे allocate हुआ है?", options:["Advisors","Community & Liquidity","Private Sale Investors","Team"], answer:1},
+  {q:"Momentum Finance की vision statement क्या है?", options:["Empower BTCFi","Build the Future","Revolutionize NFTs","Unlock Web3 Games"], answer:0},
+  {q:"Buidlpad platform creators को किस चीज़ से support करता है?", options:["Marketing & Technical guidance","केवल Funding","केवल Design","केवल Community"], answer:0},
+  {q:"$MMT sale का minimum buy कितना है?", options:["$10","$20","$50","$100"], answer:2},
+  {q:"Content Creators को qualify करने के लिए क्या करना होगा?", options:["@MMTFinance और @Buidlpad को tag करके content share करना","सिर्फ Like करना","कोई action नहीं","Telegram में join करना"], answer:0},
+  {q:"Momentum Finance का core DeFi model किस concept पर आधारित है?", options:["ve(3,3) tokenomics","Proof-of-Stake","Layer-2 scaling","Token burning"], answer:0},
+  {q:"Momentum Finance sale किस तारीख को खत्म होगी?", options:["24 Oct 2025","25 Oct 2025","27 Oct 2025","28 Oct 2025"], answer:3}
+];
+
+let current=0, score=0, timeLeft=12, timerId=null;
+
+const startCard = document.getElementById('startCard');
+const quizCard = document.getElementById('quizCard');
+const resultCard = document.getElementById('resultCard');
+const qText = document.getElementById('qText');
+const optionsDiv = document.getElementById('options');
+const timerEl = document.getElementById('timer');
+const scoreText = document.getElementById('scoreText');
+const currentNum = document.getElementById('currentNum');
+const finalScore = document.getElementById('finalScore');
+const answersList = document.getElementById('answersList');
+const retryBtn = document.getElementById('retryBtn');
+const shareBtn = document.getElementById('shareBtn');
+const skipBtn = document.getElementById('skipBtn');
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  startCard.classList.add('hidden');
+  quizCard.classList.remove('hidden'); quizCard.classList.add('show');
+  current=0; score=0; loadQuestion();
+});
+
+function loadQuestion(){
+  clearInterval(timerId); timeLeft=12;
+  const item = quiz[current];
+  qText.innerText = `${current+1}. ${item.q}`;
+  currentNum.innerText = current+1;
+  scoreText.innerText = `Score: ${score}`;
+  timerEl.innerText = `${timeLeft}s`;
+  optionsDiv.innerHTML = '';
+  item.options.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='text-left px-4 py-3 bg-purple-50 border rounded-lg hover:bg-purple-100 transition';
+    btn.innerText=opt;
+    btn.onclick=()=>selectAnswer(i,btn);
+    optionsDiv.appendChild(btn);
+  });
+  timerId=setInterval(()=>{
+    timeLeft--; timerEl.innerText=`${timeLeft}s`;
+    if(timeLeft<=0){ clearInterval(timerId); revealCorrect(null); }
+  },1000);
+}
+
+function selectAnswer(selectedIndex, btnEl){
+  clearInterval(timerId);
+  const correctIndex=quiz[current].answer;
+  const btns=optionsDiv.querySelectorAll('button');
+  btns.forEach((b,idx)=>{
+    b.disabled=true;
+    if(idx===correctIndex) b.classList.add('bg-green-500','text-white');
+    if(idx===selectedIndex && idx!==correctIndex) b.classList.add('bg-red-500','text-white');
+  });
+  if(selectedIndex===correctIndex) score++;
+  setTimeout(()=>{ current++; current>=quiz.length?showResult():loadQuestion(); },900);
+}
+
+function revealCorrect(userSelected){
+  const correctIndex=quiz[current].answer;
+  const btns=optionsDiv.querySelectorAll('button');
+  btns.forEach((b,idx)=>{ if(idx===correctIndex) b.classList.add('bg-green-500','text-white'); b.disabled=true; });
+  setTimeout(()=>{ current++; current>=quiz.length?showResult():loadQuestion(); },900);
+}
+
+skipBtn.addEventListener('click',()=>{ clearInterval(timerId); revealCorrect(null); });
+
+function showResult(){
+  clearInterval(timerId);
+  quizCard.classList.add('hidden'); resultCard.classList.remove('hidden'); resultCard.classList.add('show');
+  finalScore.innerText=`${score}`;
+  answersList.innerHTML='';
+  quiz.forEach((item,idx)=>{
+    const wrap=document.createElement('div');
+    wrap.className='p-3 rounded-lg bg-gray-50 border';
+    wrap.innerHTML=`<div class="text-sm font-medium text-gray-800">${idx+1}. ${item.q}</div>
+      <div class="text-sm text-gray-600 mt-1">Answer: <span class="font-semibold text-green-700">${item.options[item.answer]}</span></div>`;
+    answersList.appendChild(wrap);
+  });
+}
+
+retryBtn.addEventListener('click',()=>location.reload());
+shareBtn.addEventListener('click',()=>{
+  const text=`I scored ${score}/15 on Momentum + Buidlpad Day 11 Quiz! Test your knowledge: (GitHub Link) #MMT #Buidlpad`;
+  navigator.clipboard?.writeText(text).then(()=>alert('Copied! Paste on X/Twitter to share!'),()=>alert('Copy manually.'));
+});
+</script>
+
+</body>
+</html>
